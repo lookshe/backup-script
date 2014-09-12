@@ -46,7 +46,7 @@ function rsync_server {
    echo "$filefrom" | grep ".month." > /dev/null 2>&1
    ret2=$?
    # on monthly backups and connection errors there should be no update of logfile
-   if [ $ret2 -ne 0 -a $ret -ne 0 ]
+   if [ $ret2 -ne 0 -a $ret -e 0 ]
    then
       sed -e "s/^$logfileentry .*$/${logfileentry} $backup_time/" "$logfile" > "$logfile.tmp"
       mv -f "$logfile.tmp" "$logfile"
