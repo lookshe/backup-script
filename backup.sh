@@ -83,6 +83,8 @@ do
             then
                echo "${config_single}_$dir_single 0" >> $logfile
             fi
+            # add /. to directory for also backing up softlinks
+            dir_single_soft_link_path="$dir_single/."
             # get the stamp for the last backup
             last_stamp=$(grep "^${config_single}_$dir_single " $logfile | cut -d" " -f2)
             # get the stamp for the next backup
@@ -113,7 +115,7 @@ do
                   # tar is not able to handle unix-timestamps, so we calculate the required one
                   tar_stamp=$(date -d "1970-01-01 $last_stamp sec" +%F)
                   # only changed files since last modification in backup
-                  nice -n 19 tar czf "$dir_single.$backup_stamp.tar.gz" --warning=none -N "$tar_stamp" "$dir_single"
+                  nice -n 19 tar czf "$dir_single.$backup_stamp.tar.gz" --warning=none -N "$tar_stamp" "$dir_single_soft_link_path"
                   rsync_server "$dir_single.$backup_stamp.tar.gz" "$backupdir/$backupdirsingle/" "${config_single}_$dir_single"
                   # delete backups from local
                   rm -f "$dir_single.$backup_stamp.tar.gz"
@@ -122,7 +124,7 @@ do
                if [ "$do_monthly" = "yes" -o "$do_normal" = "yes" ]
                then
                   # backup everything
-                  nice -n 19 tar czf "$dir_single.tar.gz" --warning=none "$dir_single"
+                  nice -n 19 tar czf "$dir_single.tar.gz" --warning=none "$dir_single_soft_link_path"
                   # check wether we should rotate
                   if [ "$rotate" != "inc" -a "$do_normal" = "yes" ]
                   then
