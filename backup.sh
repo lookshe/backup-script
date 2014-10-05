@@ -25,9 +25,10 @@ function source_section {
    line_end=$(expr $(grep -n "$section_end" "$config_name" | cut -d: -f1) - 1)
    line_diff=$(expr $line_end - $line_start)
 
-   head -n $line_end "$config_name" | tail -n $line_diff > /tmp/backup.tmp
-   source /tmp/backup.tmp
-   rm -f /tmp/backup.tmp
+   tmp_file=$(mktemp)
+   head -n $line_end "$config_name" | tail -n $line_diff > "$tmp_file"
+   source "$tmp_file"
+   rm -f "$tmp_file"
 }
 
 # copy file with rsync to server and save last timestamp to logfile
@@ -35,9 +36,9 @@ function rsync_server {
    filefrom="$1"
    dirto="$2"
    logfileentry="$3"
-   #nice -n 19 rsync -rle "ssh -i $keyfile" "$1" "$userserver:$dirto"
+   #nice -n 19 rsync -rle "ssh -i $keyfile" "$filefrom" "$userserver:$dirto"
    # limit the bandwith
-   nice -n 19 rsync --bwlimit=100000 -rle "ssh -i $keyfile" "$1" "$userserver:$dirto"
+   nice -n 19 rsync --bwlimit=100000 -rle "ssh -i $keyfile" "$filefrom" "$userserver:$dirto"
    ret=$?
    if [ $ret -ne 0 ]
    then
@@ -46,7 +47,7 @@ function rsync_server {
    echo "$filefrom" | grep ".month." > /dev/null 2>&1
    ret2=$?
    # on monthly backups and connection errors there should be no update of logfile
-   if [ $ret2 -ne 0 -a $ret -e 0 ]
+   if [ $ret2 -ne 0 -a $ret -eq 0 ]
    then
       sed -e "s/^$logfileentry .*$/${logfileentry} $backup_time/" "$logfile" > "$logfile.tmp"
       mv -f "$logfile.tmp" "$logfile"
