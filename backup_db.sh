@@ -4,6 +4,8 @@
 # main configuration
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 config_file="$script_dir/main.cfg"
+
+# remote and local directories
 db_dir="$script_dir/db"
 backupdirsingle=db
 
@@ -24,7 +26,7 @@ function source_section {
    rm -f "$tmp_file"
 }
 
-# copy file with rsync to server and save last timestamp to logfile
+# copy file with rsync to server
 function rsync_server {
    filefrom="$1"
    dirto="$2"
@@ -41,11 +43,16 @@ function rsync_server {
 # general section from main config
 source_section "$config_file" "general"
 
+# change folder for temporary storage
 cd "$db_dir"
 
+# get all databases
 databases=$(nice -n 19 mysql -u root -N -e "show databases;" | grep -v "^information_schema$" | grep -v "^mysql$")
+
+# handle each database
 for database in $databases
 do
+   # dump and gzip database
    nice -n 19 mysqldump -u root "$database" > "$database.sql"
    nice -n 19 gzip "$database.sql"
 
@@ -67,5 +74,6 @@ do
 
    rsync_server "$database.sql.gz" "$backupdir/$backupdirsingle/"
 
+   # delete temporary file
    rm -f "$database.sql.gz"
-done
+done # for database in $databases
