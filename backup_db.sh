@@ -47,7 +47,7 @@ source_section "$config_file" "general"
 cd "$db_dir"
 
 # get all databases
-databases=$(nice -n 19 mysql -u root -N -e "show databases;" | grep -v "^information_schema$" | grep -v "^mysql$")
+databases=$(nice -n 19 mysql -u root -N -e "show databases;" | grep -v "^information_schema$" | grep -v "^mysql$" | grep -v "^performance_schema$")
 
 # handle each database
 for database in $databases
