@@ -116,7 +116,12 @@ do
                   # tar is not able to handle unix-timestamps, so we calculate the required one
                   tar_stamp=$(date -d "1970-01-01 $last_stamp sec" +%F)
                   # only changed files since last modification in backup
-                  nice -n 19 tar czf "$dir_single.$backup_stamp.tar.gz" --warning=none -N "$tar_stamp" "$dir_single_soft_link_path"
+                  if [ -f "$dir_single_soft_link_path/backup.ignore" ]
+                  then
+                     nice -n 19 tar czf "$dir_single.$backup_stamp.tar.gz" --warning=none --exclude-from="$dir_single_soft_link_path/backup.ignore" -N "$tar_stamp" "$dir_single_soft_link_path"
+                  else
+                     nice -n 19 tar czf "$dir_single.$backup_stamp.tar.gz" --warning=none -N "$tar_stamp" "$dir_single_soft_link_path"
+                  fi
                   rsync_server "$dir_single.$backup_stamp.tar.gz" "$backupdir/$backupdirsingle/" "${config_single}_$dir_single"
                   # delete backups from local
                   rm -f "$dir_single.$backup_stamp.tar.gz"
@@ -125,7 +130,12 @@ do
                if [ "$do_monthly" = "yes" -o "$do_normal" = "yes" ]
                then
                   # backup everything
-                  nice -n 19 tar czf "$dir_single.tar.gz" --warning=none "$dir_single_soft_link_path"
+                  if [ -f "$dir_single_soft_link_path/backup.ignore" ]
+                  then
+                     nice -n 19 tar czf "$dir_single.tar.gz" --warning=none --exclude-from="$dir_single_soft_link_path/backup.ignore" "$dir_single_soft_link_path"
+                  else
+                     nice -n 19 tar czf "$dir_single.tar.gz" --warning=none "$dir_single_soft_link_path"
+                  fi
                   # check wether we should rotate
                   if [ "$rotate" != "inc" -a "$do_normal" = "yes" ]
                   then
