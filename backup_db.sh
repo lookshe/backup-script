@@ -4,13 +4,10 @@
 # get path to all needed tools
 # /bin
 echo=$(which echo)
-gzip=$(which gzip)
 grep=$(which grep)
 mktemp=$(which mktemp)
-mv=$(which mv)
 pwd=$(which pwd)
 rm=$(which rm)
-umount=$(which umount)
 # /usr/bin
 cut=$(which cut)
 dirname=$(which dirname)
@@ -19,10 +16,7 @@ head=$(which head)
 mysql=$(which mysql)
 mysqldump=$(which mysqldump)
 nice=$(which nice)
-rsync=$(which rsync)
-seq=$(which seq)
 ssh=$(which ssh)
-sshfs=$(which sshfs)
 tail=$(which tail)
 
 # check if all needed tools are installed (only the ones not installed under /bin/)
@@ -34,9 +28,7 @@ test "$head" = "" && echo "'head' not installed or not found by 'which'" && allt
 test "$mysql" = "" && echo "'mysql' not installed or not found by 'which'" && alltoolsinstalled="no"
 test "$mysqldump" = "" && echo "'mysqldump' not installed or not found by 'which'" && alltoolsinstalled="no"
 test "$nice" = "" && echo "'nice' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$rsync" = "" && echo "'rsync' not installed or not found by 'which'" && alltoolsinstalled="no"
 test "$ssh" = "" && echo "'ssh' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$sshfs" = "" && echo "'sshfs' not installed or not found by 'which'" && alltoolsinstalled="no"
 test "$tail" = "" && echo "'tail' not installed or not found by 'which'" && alltoolsinstalled="no"
 
 if [ "$alltoolsinstalled" = "no" ]
@@ -50,6 +42,7 @@ config_file="$script_dir/main.cfg"
 
 # remote and local directories
 db_dir="$script_dir/db"
+usesamerepo="no"
 backupdirsingle=db
 
 # source a specified section from a specified config
@@ -69,17 +62,45 @@ function source_section {
    $rm -f "$tmp_file"
 }
 
-# copy file with rsync to server
-function rsync_server {
-   filefrom="$1"
-   dirto="$2"
-   #nice -n 19 rsync -rle "ssh -i $keyfile" "$filefrom" "$userserver:$dirto"
-   # limit the bandwith
-   $nice -n 19 $rsync --bwlimit=100000 -rle "$ssh -i $keyfile" "$filefrom" "$userserver:$dirto"
+# check if borg repo exists and create if not
+function check_borg_repo {
+   repo="$1"
+   serverdir="$2"
+   usesamerepo="$3"
+   if [ "$usesamerepo" = "yes" ]
+   then
+      repo_path="$userserver:$backupdir/$serverdir"
+   else
+      repo_path="$userserver:$backupdir/$serverdir/$repo"
+   fi
+   #check if repo exists
+   $borg_local_path list --remote-path "$borg_remote_path" --no-files-cache "$repo_path" > /dev/null 2>&1
+   if [ $? -ne 0 ]
+   then
+      # create repo if not exists
+      $borg_local_path init --remote-path "$borg_remote_path" --encryption "$borg_encryption" "$repo_path"
+   fi
+}
+
+# backup single dir with borg
+function backup_db {
+   repo="$1"
+   serverdir="$2"
+   usesamerepo="$3"
+   check_borg_repo "$repo" "$serverdir" "$usesamerepo" 
+   # to get backup.ignore work with relative paths we need to change the directory
+   if [ "$usesamerepo" = "yes" ]
+   then
+      repo_path="$userserver:$backupdir/$serverdir::$repo-{now:$default_timestamp}"
+   else
+      repo_path="$userserver:$backupdir/$serverdir/$repo::{now:$default_timestamp}"
+   fi
+   ret=0
+   $borg_local_path create --remote-path "$borg_remote_path" --one-file-system --compression "$borg_compression" "$repo_path" .
    ret=$?
    if [ $ret -ne 0 ]
    then
-      $echo "problem in rsync: $filefrom"
+      $echo "problem in borg create $repo"
    fi
 }
 
@@ -95,28 +116,11 @@ databases=$($nice -n 19 $mysql -u root -N -e "show databases;" | $grep -v "^info
 # handle each database
 for database in $databases
 do
-   # dump and gzip database
+   # dump database
    $nice -n 19 $mysqldump -u root "$database" > "$database.sql"
-   $nice -n 19 $gzip "$database.sql"
 
-   # mount for renaming
-   $sshfs $userserver:$backupdir $backupdir_local -o IdentityFile=$keyfile -o IdentitiesOnly=yes
-
-   # rotate old backups
-   for count in `seq 7 -1 2`
-   do
-      count_last=$($expr $count - 1)
-      $rm -f "$backupdir_local/$backupdirsingle/$database.sql.gz.$count"
-      $mv -f "$backupdir_local/$backupdirsingle/$database.sql.gz.$count_last" "$backupdir_local/$backupdirsingle/$database.sql.gz.$count" > /dev/null 2>&1
-   done
-   $rm -f "$backupdir_local/$backupdirsingle/$database.sql.gz.1"
-   $mv -f "$backupdir_local/$backupdirsingle/$database.sql.gz" "$backupdir_local/$backupdirsingle/$database.sql.gz.1" > /dev/null 2>&1
-
-   # unmount
-   $umount $backupdir_local
-
-   rsync_server "$database.sql.gz" "$backupdir/$backupdirsingle/"
+   backup_db "$database" "$backupdirsingle" "$usesamerepo"
 
    # delete temporary file
-   $rm -f "$database.sql.gz"
+   $rm -f "$database.sql"
 done # for database in $databases
