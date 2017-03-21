@@ -22,13 +22,13 @@ tail=$(which tail)
 
 # check if all needed tools are installed (only the ones not installed under /bin/)
 alltoolsinstalled="yes"
-test "$cut" = "" && echo "'cut' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$dirname" = "" && echo "'dirname' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$expr" = "" && echo "'expr' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$head" = "" && echo "'head' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$nice" = "" && echo "'nice' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$ssh" = "" && echo "'ssh' not installed or not found by 'which'" && alltoolsinstalled="no"
-test "$tail" = "" && echo "'tail' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$cut" = "" && $echo "'cut' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$dirname" = "" && $echo "'dirname' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$expr" = "" && $echo "'expr' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$head" = "" && $echo "'head' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$nice" = "" && $echo "'nice' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$ssh" = "" && $echo "'ssh' not installed or not found by 'which'" && alltoolsinstalled="no"
+test "$tail" = "" && $echo "'tail' not installed or not found by 'which'" && alltoolsinstalled="no"
 
 if [ "$alltoolsinstalled" = "no" ]
 then
