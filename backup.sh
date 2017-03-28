@@ -64,6 +64,7 @@ function check_borg_repo {
    repo="$1"
    serverdir="$2"
    usesamerepo="$3"
+   ret=0
    if [ "$usesamerepo" = "yes" ]
    then
       repo_path="$userserver:$backupdir/$serverdir"
@@ -76,7 +77,13 @@ function check_borg_repo {
    then
       # create repo if not exists
       $nice $borg_local_path init --remote-path "$borg_remote_path" --encryption "$borg_encryption" "$repo_path"
+      if [ $? -ne 0 ]
+      then
+         $echo "problem in borg init $repo"
+         ret=1
+      fi
    fi
+   return $ret
 }
 
 # backup single dir with borg
@@ -85,7 +92,11 @@ function backup_dir {
    serverdir="$2"
    logfileentry="$3"
    usesamerepo="$4"
-   check_borg_repo "$repo" "$serverdir" "$usesamerepo" 
+   check_borg_repo "$repo" "$serverdir" "$usesamerepo"
+   if [ $? -ne 0 ]
+   then
+      return 1
+   fi
    # to get backup.ignore work with relative paths we need to change the directory
    pushd "$repo" > /dev/null
    if [ "$usesamerepo" = "yes" ]
@@ -111,6 +122,7 @@ function backup_dir {
    else
       $echo "problem in borg create $repo"
    fi
+   return 0
 }
 
 # general section from main config
