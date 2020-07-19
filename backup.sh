@@ -72,7 +72,7 @@ function check_borg_repo {
       repo_path="$userserver:$backupdir/$serverdir/$repo"
    fi
    #check if repo exists
-   $nice $borg_local_path list --remote-path "$borg_remote_path" --no-files-cache "$repo_path" > /dev/null 2>&1
+   $nice $borg_local_path list --remote-path "$borg_remote_path" "$repo_path" > /dev/null 2>&1
    if [ $? -ne 0 ]
    then
       # create repo if not exists
