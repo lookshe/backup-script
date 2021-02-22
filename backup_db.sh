@@ -128,7 +128,7 @@ databases=$($nice -n 19 $mysql -u root -N -e "show databases;" | $grep -v "^info
 for database in $databases
 do
    # dump database
-   $nice -n 19 $mysqldump -u root "$database" > "$database.sql"
+   $nice -n 19 $mysqldump --default-character-set=utf8mb4 -u root "$database" > "$database.sql"
 
    backup_db "$database" "$backupdirsingle" "$usesamerepo"
 
