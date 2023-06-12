@@ -72,11 +72,11 @@ function check_borg_repo {
       repo_path="$userserver:$backupdir/$serverdir/$repo"
    fi
    #check if repo exists
-   $nice $borg_local_path list --remote-path "$borg_remote_path" "$repo_path" > /dev/null 2>&1
+   $nice $borg_local_path list "$repo_path" > /dev/null 2>&1
    if [ $? -ne 0 ]
    then
       # create repo if not exists
-      $nice $borg_local_path init --remote-path "$borg_remote_path" --encryption "$borg_encryption" "$repo_path"
+      $nice $borg_local_path init --encryption "$borg_encryption" "$repo_path"
       if [ $? -ne 0 ]
       then
          $echo "problem in borg init $repo"
@@ -108,10 +108,10 @@ function backup_dir {
    ret=0
    if [ -f "backup.ignore" ]
    then
-      $nice $borg_local_path create --remote-path "$borg_remote_path" --one-file-system --exclude-from "backup.ignore" --compression "$borg_compression" "$repo_path" .
+      $nice $borg_local_path create --one-file-system --exclude-from "backup.ignore" --compression "$borg_compression" "$repo_path" .
       ret=$?
    else
-      $nice $borg_local_path create --remote-path "$borg_remote_path" --one-file-system --compression "$borg_compression" "$repo_path" .
+      $nice $borg_local_path create --one-file-system --compression "$borg_compression" "$repo_path" .
       ret=$?
    fi
    popd > /dev/null
